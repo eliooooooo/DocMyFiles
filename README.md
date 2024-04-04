@@ -35,4 +35,4 @@ processDirectory(projectPath, avoid);
 
 Remember to customize the avoid table to exclude specific files or directories that should not be included in the README generation.
 
-Enjoy documenting your projects effortlessly with `docmyfiles`!
+Enjoy documenting your projects effortlessly with `docmyfiles`!\n\n> Ce README a été généré par [DocMyFiles](https://github.com/eliooooooo/DocMyFiles).
