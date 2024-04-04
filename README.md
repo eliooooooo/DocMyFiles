@@ -1,65 +1,38 @@
-# docmyfiles README
+# docmyfiles
 
-This is the README for your extension "docmyfiles". After writing up a brief description, we recommend including the following sections.
+## Introduction
 
-## Features
+The `docmyfiles` extension is a helpful tool specialized in generating custom README files for projects. It is designed to assist developers in creating well-documented projects by automating the process of creating README files.
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+## Installation
 
-For example if there is an image subfolder under your extension project workspace:
+To install `docmyfiles`, please follow these steps:
 
-\!\[feature X\]\(images/feature-x.png\)
+1. Clone the repository from GitHub.
+2. Run `npm install` to install the required dependencies.
+3. Set up your `.env` file with the necessary environment variables.
+4. Run the application using `node your_script.js`.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Usage
 
-## Requirements
+To use the `docmyfiles` extension, you need to run the script while providing the project path and avoiding specific files or directories. The extension will process the specified directory, read the files, and generate a README file based on the content.
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Here is an example usage of the `docmyfiles` extension:
 
-## Extension Settings
+```js
+const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
+dotenv.config({ path: __dirname + '/.env' })
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+// Define the project path and files/directories to avoid
+const projectPath = './project/GAME/';
+const avoid = ['node_modules', 'dist',  '.git', 'img', 'css'];
 
-For example:
+// Process the directory and generate the README
+processDirectory(projectPath, avoid);
+```
 
-This extension contributes the following settings:
+Remember to customize the avoid table to exclude specific files or directories that should not be included in the README generation.
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Enjoy documenting your projects effortlessly with `docmyfiles`!
