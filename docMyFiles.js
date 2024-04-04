@@ -20,6 +20,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // const tokenizer = new Tokenizer();
 
 async function sendRequest(projectPath, message) {
+	const footer = "\n\n> Ce README a été généré par [DocMyFiles](https://github.com/eliooooooo/DocMyFiles).";
 	try {
 		const answer = await new Promise((resolve) => {
 			rl.question('Do you want to send the request? (yes/no) ', (answer) => {
@@ -34,7 +35,7 @@ async function sendRequest(projectPath, message) {
 			});
 		
 			console.log('README generated in : ' + path.join(__dirname, projectPath, 'README.md'));
-			fs.writeFileSync(path.join(__dirname, projectPath, 'README.md'), response.choices[0].message.content);
+			fs.writeFileSync(path.join(__dirname, projectPath, 'README.md'), response.choices[0].message.content + footer);
 		} else {
 			console.log('Request not sent.');
 		}
