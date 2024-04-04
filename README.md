@@ -10,8 +10,9 @@ To install `docmyfiles`, please follow these steps:
 
 1. Clone the repository from GitHub.
 2. Run `npm install` to install the required dependencies.
-3. Set up your `.env` file with the necessary environment variables.
-4. Run the application using `node your_script.js`.
+3. Set up your `.env` file with the necessary environment variables (OPENAI_API_KEY).
+4. Clone your project into the `project` directory.
+5. Run the application using `node your_script.js`.
 
 ## Usage
 
@@ -35,4 +36,4 @@ processDirectory(projectPath, avoid);
 
 Remember to customize the avoid table to exclude specific files or directories that should not be included in the README generation.
 
-Enjoy documenting your projects effortlessly with `docmyfiles`!\n\n> Ce README a été généré par [DocMyFiles](https://github.com/eliooooooo/DocMyFiles).
+Enjoy documenting your projects effortlessly with `docmyfiles`! <br><br> Ce README a été généré par [DocMyFiles](https://github.com/eliooooooo/DocMyFiles).

@@ -20,7 +20,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // const tokenizer = new Tokenizer();
 
 async function sendRequest(projectPath, message) {
-	const footer = "\n\n> Ce README a été généré par [DocMyFiles](https://github.com/eliooooooo/DocMyFiles).";
+	const footer = "<br><br> Ce README a été généré par [DocMyFiles](https://github.com/eliooooooo/DocMyFiles).";
 	try {
 		const answer = await new Promise((resolve) => {
 			rl.question('Do you want to send the request? (yes/no) ', (answer) => {
