@@ -43,7 +43,7 @@ async function sendRequest(projectPath, message) {
 
 // Don't forget to custom the avoid table to avoid some files or directories
 const projectPath = './project/GAME/';
-const avoid = ['node_modules', 'dist',  '.git', '.env', 'img', 'css'];
+const avoid = ['node_modules', 'dist',  '.git', 'img', 'css'];
 
 async function processDirectory(projectPath, avoid) {
 	try {
