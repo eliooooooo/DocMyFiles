@@ -21,28 +21,31 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function sendRequest(projectPath, message) {
 	try {
-		rl.question('Do you want to send the request? (yes/no) ', async (answer) => {
-			if (answer.toLowerCase() === 'yes') {
-				const response = await openai.chat.completions.create({
-					model: 'gpt-3.5-turbo',
-					messages: message
-				});
-				
-				console.log('README generated in : ' + projectPath);
-				fs.writeFileSync(path.join(__dirname, projectPath, 'README.md'), response.choices[0].message.content);
-			} else {
-				console.log('Request not sent.');
-			}
-			rl.close();
+		const answer = await new Promise((resolve) => {
+			rl.question('Do you want to send the request? (yes/no) ', (answer) => {
+				resolve(answer);
+			});
 		});
 
+		if (answer.toLowerCase() === 'yes') {
+			const response = await openai.chat.completions.create({
+				model: 'gpt-3.5-turbo',
+				messages: message
+			});
+		
+			console.log('README generated in : ' + path.join(__dirname, projectPath, 'README.md'));
+			fs.writeFileSync(path.join(__dirname, projectPath, 'README.md'), response.choices[0].message.content);
+		} else {
+			console.log('Request not sent.');
+		}
+		rl.close();
 	} catch (err) {
 		console.error(err);
 	}
 }
 
 // Don't forget to custom the avoid table to avoid some files or directories
-const projectPath = './project/GAME/';
+const projectPath = './project/DocmyFiles';
 const avoid = ['node_modules', 'dist',  '.git', 'img', 'css'];
 
 async function processDirectory(projectPath, avoid) {
@@ -68,7 +71,7 @@ async function processDirectory(projectPath, avoid) {
 			}
 		}
 
-		message.push({ role: 'user', content: 'Could you generate a custom README for my project? It should include an introduction, installation instructions, usage examples' });
+		message.push({ role: 'user', content: 'Could you generate a custom README for my project? Not a template but a fully usable file. It should include an introduction, installation instructions, usage examples' });
 		
 		if (enableTokenizer) {
 			exec(`python3 tokenCounter.py "${data}"`, (error, stdout, stderr) => {
@@ -80,7 +83,7 @@ async function processDirectory(projectPath, avoid) {
 			});
 		}
 
-		sendRequest(projectPath, message);
+		await sendRequest(projectPath, message);
 		
 	} catch (err) {
 		console.error(err);
