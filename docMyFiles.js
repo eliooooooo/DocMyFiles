@@ -57,9 +57,11 @@ function processDirectory(directory, avoid) {
 
     for (const child of childs) {		
 		const childPath = path.join(directory, child);
+
 		if (avoid.some(av => childPath.includes(av))) continue;
 		console.log('Processing file: ', childPath);
-        if (fs.statSync(childPath).isFile()) {
+        
+		if (fs.statSync(childPath).isFile()) {
             docmyfile(childPath);
         } else {
             processDirectory(childPath, avoid);
