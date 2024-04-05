@@ -31,6 +31,8 @@ async function sendRequest(projectPath, message) {
 			});
 		}
 
+		console.log(projectPath);
+
 		const answer = await new Promise((resolve) => {
 			rl.question('Do you want to send the request? (yes/no) ', (answer) => {
 				resolve(answer);
@@ -43,8 +45,8 @@ async function sendRequest(projectPath, message) {
 				messages: message
 			});
 		
-			console.log('README generated in : ' + path.join(__dirname, projectPath, 'README.md'));
 			fs.writeFileSync(path.join(__dirname, projectPath, 'README.md'), response.choices[0].message.content + footer);
+			console.log('README generated in : ' + path.join(__dirname, projectPath, 'README.md'));
 		} else {
 			console.log('Request not sent.');
 		}
@@ -55,15 +57,15 @@ async function sendRequest(projectPath, message) {
 }
 
 // Don't forget to custom the avoid table to avoid some files or directories
-const projectPath = './project/Js-Animation/';
-const avoid = ['node_modules', 'dist',  '.git', 'img', 'css'];
-const description = 'This project is a simple animation project in JavaScript, there is a bouncing ball simulaion and a game snake.';
+const projectPath = './project/sae401/';
+const avoid = ['node_modules', 'dist', '.git', 'img', 'css', 'bin', 'uploads', 'tests', 'styles', 'assets'];
+const description = 'This is a symfony project, call "Interrail Trip" to accompany and guide users on their interrail journeys';
 
 async function processDirectory(projectPath, avoid, description) {
 	try {
 		const childs = fs.readdirSync(projectPath);
 		const message = [
-			{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my project : ' + description + '. Here are my project files so that you can generate a custom README for me :' },
+			{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my symfony project : ' + description + '. Here are my project files so that you can generate a custom README for me :' },
 		];
 	
 		for (const child of childs) {		
@@ -78,17 +80,12 @@ async function processDirectory(projectPath, avoid, description) {
 
 				message.push({ role: 'user', content: 'Here is my ' + childPath + ' file : ```' + data + '```' });
 			} else {
-				processDirectory(childPath, avoid);
+				processDirectory(childPath, avoid, description);
 			}
 		}
 
 		message.push({ role: 'user', content: 'Could you generate a custom README for my project based on the code and comments in the files I provided? The README should be a fully usable file, not a template. It should include an introduction, installation instructions, configuration setup, usage examples.' });
 		
-		
-		console.log('Message : ');
-		for (const m of message) {
-			console.log(m.role + ' : ' + m.content);
-		}
 		await sendRequest(projectPath, message);
 		
 	} catch (err) {
