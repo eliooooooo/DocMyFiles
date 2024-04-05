@@ -16,13 +16,12 @@ import sys
 
 # METHOD 3
 import tiktoken
-encoding = tiktoken.encoding_for_model("GPT-3.5-turbo")
 
-encoding.encode("Hello, world!")
+print(sys.argv[1])
 
 def num_token_from_string(string: str, encoding_name: str) -> int:
     """Return the number of tokens in a string."""
-    encoding = tiktoken.encoding_for_model(encoding_name)
+    encoding = tiktoken.get_encoding(encoding_name)
     return len(encoding.encode(string))
 
-print(num_token_from_string(sys.argv[1], "GPT-3.5-turbo"))
+print(num_token_from_string(sys.argv[1], "cl100k_base"))
