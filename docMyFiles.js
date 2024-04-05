@@ -20,7 +20,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // *------------------------------------*
 const enableTokenizer = false; // enable it will execute a python script to count the tokens, make sure to have python installed
 
-const projectPath = './project/DocMyFiles'; // Don't forget to custom the project path
+const projectPath = './project/sae401/'; // Don't forget to custom the project path
 const avoid = ['.git']; // Don't forget to custom the avoid table to avoid some files or directories
 const description = 'This is a script working with openai api. It can generate custom README files from your actual project files.'; // Don't forget to custom the description of your project
 
