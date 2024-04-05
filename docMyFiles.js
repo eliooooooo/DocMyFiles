@@ -20,9 +20,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // *------------------------------------*
 const enableTokenizer = false; // enable it will execute a python script to count the tokens, make sure to have python installed
 
-const projectPath = './project/sae401/'; // Don't forget to custom the project path
-const avoid = ['node_modules', 'dist', '.git', 'img', 'css', 'bin', 'uploads', 'tests', 'styles', 'assets', 'migrations', 'config']; // Don't forget to custom the avoid table to avoid some files or directories
-const description = 'This is a symfony project, call "Interrail Trip" to accompany and guide users on their interrail journeys'; // Don't forget to custom the description of your project
+const projectPath = './project/DocMyFiles'; // Don't forget to custom the project path
+const avoid = ['.git']; // Don't forget to custom the avoid table to avoid some files or directories
+const description = 'This is a script working with openai api. It can generate custom README files from your actual project files.'; // Don't forget to custom the description of your project
 
 
 // *------------------------------------*
@@ -32,7 +32,7 @@ const description = 'This is a symfony project, call "Interrail Trip" to accompa
 // *------------------------------------*
 let fileStack = [];
 let messages = [
-	{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my symfony project : ' + description + '. Here are my project files so that you can generate a custom README for me :' },
+	{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my project : ' + description + '. Here are my project files so that you can generate a custom README for me :' },
 ];
 
 
@@ -62,8 +62,6 @@ async function sendRequest(projectPath, messages) {
 			});
 		}
 
-		console.log(projectPath);
-
 		const answer = await new Promise((resolve) => {
 			rl.question('Do you want to send the request? (yes/no) ', (answer) => {
 				resolve(answer);
@@ -86,28 +84,6 @@ async function sendRequest(projectPath, messages) {
 		console.error(err);
 	}
 }
-
-
-// async function processDirectory(projectPath, avoid, description) {
-// 	try {
-// 		const childs = fs.readdirSync(projectPath);
-// 		const message = [
-// 			{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my symfony project : ' + description + '. Here are my project files so that you can generate a custom README for me :' },
-// 		];
-// 		for (const child of childs) {		
-// 			const childPath = path.join(projectPath, child);
-// 			if (avoid.some(av => childPath.includes(av))) continue;
-// 			console.log('Processing file: ', childPath);
-// 			if (fs.statSync(childPath).isFile()) {
-// 				const filePath = path.join(__dirname, childPath);
-// 				const data = await fs.promises.readFile(filePath, 'utf8');
-// 				message.push({ role: 'user', content: 'Here is my ' + childPath + ' file : ```' + data + '```' });
-// 			} else {
-// 				processDirectory(childPath, avoid, description);
-// 			}}
-// 		message.push({ role: 'user', content: 'Could you generate a custom README for my project based on the code and comments in the files I provided? The README should be a fully usable file, not a template. It should include an introduction, installation instructions, configuration setup, usage examples.' });
-// 		await sendRequest(projectPath, message);
-// 	} catch (err) {console.error(err);}}
 
 /**
  * Process the file
@@ -139,7 +115,7 @@ async function processDirectory(projectPath, avoid) {
 			const childPath = path.join(projectPath, child);
 
 			if (avoid.some(av => childPath.includes(av))) continue;
-			console.log('Processing file: ', childPath);
+			// console.log('Processing file: ', childPath);
 			
 			if (fs.statSync(childPath).isFile()) {
 				fileStack.push(childPath);
@@ -163,6 +139,9 @@ async function processDirectory(projectPath, avoid) {
 // get all files (- avoid) in the project directory
 processDirectory(projectPath, avoid);
 
+console.log('Files to process : ', fileStack);
+
+// process all files
 Promise.all(fileStack.map(element => processFile(element)))
 .then(() => { sendRequest(projectPath, messages); })
 .catch(err => console.error(err));
