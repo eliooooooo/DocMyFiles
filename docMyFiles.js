@@ -72,26 +72,6 @@ let messages = [
 // |           FUNCTIONS                |
 // |                                    |
 // *------------------------------------*
-/**	
- * Add context to the global context
- * @param {object} newContext
- * 
- * @returns {void}
- */
-function addContext(newContext) {
-	context = { ...context, ...newContext };
-}
-
-/**
- * Give context to the query
- * @param {object} query
- * 
- * @returns {void}
- */
-function giveContext(query) {
-	query.contexte = context;
-}
-
 /**
  * Process the message
  * @param {string} message
@@ -99,7 +79,6 @@ function giveContext(query) {
  * @returns {void}
  */
 async function processMessage(message, listRequest, listMessages, listMessagesSize, totalMessages, ignoredFiles) {
-	message.contexte = context;
 	let tmpMessage = fileSync();
 	writeFileSync(tmpMessage.name, JSON.stringify([message]));
 	await new Promise((resolve, reject) => {
@@ -126,9 +105,6 @@ async function processMessage(message, listRequest, listMessages, listMessagesSi
 		});
 	});
 
-	// let contextJSON = JSON.stringify(context);
-	// console.log(chalk.green('New context : ' + contextJSON));
-	// addContext({ ...context, ...message });
 	return Promise.resolve({ listRequest, listMessages, listMessagesSize, totalMessages, ignoredFiles });
 }
 
@@ -240,7 +216,8 @@ async function sendRequest(projectPath, messages) {
 						console.log(chalk.magenta('Sending request ' + i + ' for processing...'));
 						const response = await openai.chat.completions.create({
 							model: 'gpt-3.5-turbo',
-							messages: request
+							messages: request,
+							context: context
 						});
 						tokensUsed += Number(response.usage.total_tokens);
 						price += Number((tokensUsed/1000)*0.0005);
