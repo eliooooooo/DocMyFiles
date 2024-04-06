@@ -3,6 +3,7 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "fs": "^0.0.1-security",
-    "openai": "^4.32.1"
+    "openai": "^4.32.1",
+    "tmp": "^0.2.3"
   }
 }
