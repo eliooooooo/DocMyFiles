@@ -99,6 +99,7 @@ function giveContext(query) {
  * @returns {void}
  */
 async function processMessage(message, listRequest, listMessages, listMessagesSize, totalMessages, ignoredFiles) {
+	message.contexte = context;
 	let tmpMessage = fileSync();
 	writeFileSync(tmpMessage.name, JSON.stringify([message]));
 	await new Promise((resolve, reject) => {
@@ -124,6 +125,10 @@ async function processMessage(message, listRequest, listMessages, listMessagesSi
 			resolve();
 		});
 	});
+
+	// let contextJSON = JSON.stringify(context);
+	// console.log(chalk.green('New context : ' + contextJSON));
+	// addContext({ ...context, ...message });
 	return Promise.resolve({ listRequest, listMessages, listMessagesSize, totalMessages, ignoredFiles });
 }
 
