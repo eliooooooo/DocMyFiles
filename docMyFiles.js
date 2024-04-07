@@ -1,42 +1,51 @@
-import { fileURLToPath } from 'url';
-import { config } from 'dotenv';
-import chalk from 'chalk';
-import { exec } from 'child_process';
-import { writeFileSync, promises, readdirSync, statSync } from 'fs';
+// Tmp to create a temporary file to store the messages
+// Fs to write the messages in the temporary file
 import { fileSync } from 'tmp';
+import { writeFileSync, promises, readdirSync, statSync } from 'fs';
+
+// Util to promisify the exec function
+// Child process to execute python script
+import { promisify } from 'util';
+import { exec as callbackExec } from 'child_process';
+const exec = promisify(callbackExec);
+
+// Url and path to get the __filename and __dirname variables 
+import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-config({ path: __dirname + '/.env' })
 
+// Get API key from .env file
+// OpenAI to send the request to the API
+import { config } from 'dotenv';
+config({ path: __dirname + '/.env' })
+import OpenAI from 'openai';
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Readline interface to get user input from the console
+// Chalk to color the console output
+import chalk from 'chalk';
 import { createInterface } from 'readline';
 const rl = createInterface({
 	input: process.stdin,
 	output: process.stdout
 });
 
-import OpenAI from 'openai';
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Check your OpenAI account to get your tier rate
 // The tier rate affect the number of tokens you can send in a minute, it's important to customize it to get a faster result
 const tierRate = {
 	"Tier 1": {
 		"tpm": 60000
-	},
-	"Tier 2": {
+	},"Tier 2": {
 		"tpm": 80000
-	},
-	"Tier 3": {
+	},"Tier 3": {
 		"tpm": 160000
-	},
-	"Tier 4": {
+	},"Tier 4": {
 		"tpm": 1000000
-	},
-	"Tier 5": {
+	},"Tier 5": {
 		"tpm": 2000000
-	},
-	"custom": {
+	},"custom": {
 		"tpm": "custom value"
 	}
 }
@@ -61,7 +70,8 @@ const description = 'This is an vscode extension that allow user to generate con
 // *------------------------------------*
 let fileStack = [];
 let context = {};
-let tpm = tierRate[openaiTier].tpm - 1500;
+const tpm = tierRate[openaiTier].tpm - 1500;
+const MAX_TOKENS = 15000;
 let messages = [
 	{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my project : ' + description + '. Here are my project files so that you can generate a custom README for me :' },
 ];
@@ -73,37 +83,40 @@ let messages = [
 // |                                    |
 // *------------------------------------*
 /**
- * Process the message
+ * Process the message and create the requests list
  * @param {string} message
  * 
  * @returns {void}
  */
 async function processMessage(message, listRequest, listMessages, listMessagesSize, totalMessages, ignoredFiles) {
+	// TODO: Write the message in a temporary file and rename the file with his name
 	let tmpMessage = fileSync();
 	writeFileSync(tmpMessage.name, JSON.stringify([message]));
-	await new Promise((resolve, reject) => {
-		exec(`python3 tokenCounter.py "${tmpMessage.name}"`, (error, stdout, stderr) => {
-			if (error) {
-				console.error(`exec error: ${error}`);
-				return;
-			}
-			if (Number(stdout) > 15000) {
-				console.log(chalk.red('Message too big, it will be ignored.'));
-				ignoredFiles += 1;
-			} else {
-				if (listMessagesSize + Number(stdout) > 15000) {
-					listRequest.push(listMessages);
-					console.log(chalk.magenta('Request added to the list with ' + listMessages.length + ' messages ' + '( ' + listRequest.length + ' requests )'));
-					totalMessages += listMessages.length;
-					listMessages = [];
-					listMessagesSize = 0;
-				}
-				listMessages.push(message);
-				listMessagesSize += Number(stdout);
-			}
-			resolve();
-		});
-	});
+
+	// Count the number of tokens in the message with a python script
+	let stdout = (await exec(`python3 tokenCounter.py "${tmpMessage.name}"`)).stdout;
+
+	// If the message is too big, it will be ignored (based on the MAX_TOKENS variable)
+	if (Number(stdout) > MAX_TOKENS) {
+		console.log(chalk.red('Message too big, it will be ignored.'));
+		ignoredFiles += 1;
+	} else {
+		// If the message is too big to be added to the request, it will be added to the listRequest
+		if (listMessagesSize + Number(stdout) > MAX_TOKENS) {
+			// Push the request to the listRequest and update overview variables
+			listRequest.push(listMessages);
+			totalMessages += listMessages.length;
+			
+			// Clear variables for the next request
+			listMessages = [];
+			listMessagesSize = 0;
+
+			console.log(chalk.magenta('Request added to the list with ' + listMessages.length + ' messages ' + '( ' + listRequest.length + ' requests )'));
+		}
+		// Push the message to the listMessages and update overview variables
+		listMessages.push(message);
+		listMessagesSize += Number(stdout);
+	}
 
 	return Promise.resolve({ listRequest, listMessages, listMessagesSize, totalMessages, ignoredFiles });
 }
@@ -116,6 +129,7 @@ async function processMessage(message, listRequest, listMessages, listMessagesSi
  * @returns {void}
  */
 async function sendRequest(projectPath, messages) {
+	// Get the message content without all the object properties (without filename)
 	const footer = "<br><br> This README was generated by [DocMyFiles](https://github.com/eliooooooo/DocMyFiles).";
 	let bigRequest = false;
 	let longRequest = false;
@@ -131,7 +145,7 @@ async function sendRequest(projectPath, messages) {
 						reject(error);
 						return;
 					}
-					if (Number(stdout) > 15000 ) {
+					if (Number(stdout) > MAX_TOKENS ) {
 						if (Number(stdout) > tpm) longRequest = true;
 						bigRequest = true;
 						requestSize = Number(stdout);
@@ -169,7 +183,7 @@ async function sendRequest(projectPath, messages) {
 				let ignoredFiles = 0;
 				
 				// Define the number of request to send
-				let estimatedNumber = Math.ceil(requestSize/15000);
+				let estimatedNumber = Math.ceil(requestSize/MAX_TOKENS);
 				console.log('');
 				console.log(chalk.cyan('Request will be send in approx. ' + estimatedNumber + ' parts.'));
 				console.log(chalk.cyan('Parsing request...'));
@@ -209,7 +223,7 @@ async function sendRequest(projectPath, messages) {
 					let i = 1;
 					let tokensUsed = 0;
 					let price = 0;
-					let requestPerMin = Math.ceil(tpm/15000);
+					let requestPerMin = Math.ceil(tpm/MAX_TOKENS);
 					console.log(chalk.bold('Requests per minute : ' + chalk.cyan(requestPerMin)));
 					console.log("------------------");
 					for (let request of listRequest) {
@@ -276,8 +290,11 @@ async function sendRequest(projectPath, messages) {
  */
 async function processFile(filePath) {
 	try {
+		// Collect the data from the file and json stringify it to send it to the API
 		let data = await promises.readFile(join(__dirname, filePath), 'utf8');
 		data = JSON.stringify(data);
+
+		// Push the message to the messages array
 		messages.push({ role: 'user', content: 'Here is my ' + filePath + ' file : ' + data + '' });
 	} catch (err) {
 		console.error(err);
@@ -285,7 +302,7 @@ async function processFile(filePath) {
 }
 
 /**
- * Process the project directory
+ * Process the project directory (recursive)
  * @param {string} projectPath
  * @param {string[]} avoid
  * 
@@ -299,7 +316,6 @@ async function processDirectory(projectPath, avoid) {
 			const childPath = join(projectPath, child);
 
 			if (avoid.some(av => childPath.includes(av))) continue;
-			// console.log('Processing file: ', childPath);
 			
 			if (statSync(childPath).isFile()) {
 				fileStack.push(childPath);
