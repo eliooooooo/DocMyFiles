@@ -62,6 +62,12 @@ const projectPath = './project/ChartMyTime/'; // Don't forget to custom the proj
 const avoid = ['.git', 'icons', 'package-lock.json', 'composer.lock' ]; // Don't forget to custom the avoid table to avoid some files or directories
 const description = 'This is an vscode extension that allow user to generate conventionnals commit from his inputs.'; // Don't forget to custom the description of your project
 
+// Calculate the number of tokens in the description
+// Don't modify this part
+const TMP_DESCRIPTION = fileSync();
+writeFileSync(TMP_DESCRIPTION.name, JSON.stringify([{ role: 'system', content: description }]));
+const TOKENS_DESCRIPTION = Number((await exec(`python3 tokenCounter.py "${TMP_DESCRIPTION.name}"`)).stdout);
+
 
 // *------------------------------------*
 // |                                    |
@@ -69,12 +75,31 @@ const description = 'This is an vscode extension that allow user to generate con
 // |                                    |
 // *------------------------------------*
 let fileStack = [];
-let context = {};
+let context = [];
 const TOKENS_PER_MINUTES = tierRate[openaiTier].tpm - 1500;
 const MAX_TOKENS = 15000;
 let messages = [
-	{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my project : ' + description + '. Here are my project files so that you can generate a custom README for me :' },
+	{ role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my project : ' + description + '. Here are my project files so that you can generate a custom README for me :' }
 ];
+
+// TODO: Create a function to count tokens of the different messages
+// Classic instruction to generate a readme for a little project
+const CLASSIC_MESSAGE = { role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my project : ' + description + '. Here are my project files so that you can generate a custom README for me :' };
+const TMP_CLASSIC_MESSAGE = fileSync();
+writeFileSync(TMP_CLASSIC_MESSAGE.name, JSON.stringify([CLASSIC_MESSAGE]));
+const TOKENS_CLASSIC_MESSAGE = Number((await exec(`python3 tokenCounter.py "${TMP_CLASSIC_MESSAGE.name}"`)).stdout) + TOKENS_DESCRIPTION;
+
+// Classic instruction to generate a readme for a big project
+const BIG_MESSAGE = { role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files for projects. Here is a short description of my project : ' + description + '. I want to send you multiple requests with each multiple files. Please generate a full report of the files so later you can generate a README from multiple report files.' };
+const TMP_BIG_MESSAGE = fileSync();
+writeFileSync(TMP_BIG_MESSAGE.name, JSON.stringify([BIG_MESSAGE]));
+const TOKENS_BIG_MESSAGE = Number((await exec(`python3 tokenCounter.py "${TMP_BIG_MESSAGE.name}"`)).stdout) + TOKENS_DESCRIPTION;
+
+// Last instruction to generate the readme for big project
+const LAST_BIG_MESSAGE = { role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files for projects. Here is a short description of my project : ' + description + '. I have sent you multiple requests with each multiple files and you have generate multiple full report from these requests. Please generate a README based on my description and your full reports.' };
+const TMP_LAST_BIG_MESSAGE = fileSync();
+writeFileSync(TMP_LAST_BIG_MESSAGE.name, JSON.stringify([LAST_BIG_MESSAGE]));
+const TOKENS_LAST_BIG_MESSAGE = Number((await exec(`python3 tokenCounter.py "${TMP_LAST_BIG_MESSAGE.name}"`)).stdout) + TOKENS_DESCRIPTION;
 
 
 // *------------------------------------*
@@ -179,7 +204,7 @@ async function sendRequest(projectPath, messages) {
 
 		// Display the estimated price of the request
 		let estimatedPrice = (requestSize/1000)*0.0005;
-		let price = requestSize.trim() + ' ( ' + chalk.red('+- ' + estimatedPrice.toFixed(3) + ' $') + ' )';
+		let price = requestSize + ' ( ' + chalk.red('+- ' + estimatedPrice.toFixed(3) + ' $') + ' )';
 		console.log(chalk.bold('Estimated tokens price : '), price);
 		console.log("");
 	}
