@@ -59,8 +59,8 @@ const enableTokenizer = true; // enable it will execute a python script to count
 
 const openaiTier = "Tier 1"; // Don't forget to custom the openai tier, it refers to the tierRate object
 const projectPath = './project/ChartMyTime/'; // Don't forget to custom the project path
-const avoid = ['.git', 'icons', 'package-lock.json', 'composer.lock' ]; // Don't forget to custom the avoid table to avoid some files or directories
-const description = 'This is an vscode extension that allow user to generate conventionnals commit from his inputs.'; // Don't forget to custom the description of your project
+const avoid = ['.git', 'icons', 'package-lock.json', 'composer.lock', '.vscode' ]; // Don't forget to custom the avoid table to avoid some files or directories
+const description = ''; // Don't forget to custom the description of your project
 
 // Calculate the number of tokens in the description
 // Don't modify this part
@@ -75,7 +75,7 @@ const TOKENS_DESCRIPTION = Number((await exec(`python3 tokenCounter.py "${TMP_DE
 // |                                    |
 // *------------------------------------*
 let fileStack = [];
-let context = [];
+let contextFiles = [];
 let messageList = [];
 const TOKENS_PER_MINUTES = tierRate[openaiTier].tpm - 1500;
 const MAX_TOKENS = 15000;
@@ -250,9 +250,41 @@ async function sendRequest(projectPath, messagesList) {
 			console.log(chalk.magenta('Request added to the list with ' + listRequestMessages.length + ' messages ' + '( ' + listRequest.length + ' requests )'));
 			totalMessages += listRequestMessages.length;
 
-			// ! Ici, ajouter la dernière requête pour ajouter le message de fin et les comptes rendus
-			// ! Ne pas oublier de mettre à jour les variables pour l'overview
+			// ! Add the tmp files content to the last message
+			// TODO: move this part after the request is sent 
+			// ? Move this part in a function
+			// Count the number of tokens in the message with a python script
+			const contextRequestSize = 0;
+			for (let contextFile of contextFiles) {
+				let stdout = (await exec(`python3 tokenCounter.py "${contextFile}"`)).stdout;
+				contextRequestSize += Number(stdout);
+			}
 
+			// Add the last message to the last request
+			// If the last request is too big, create a new request
+			if (listMessagesSize + contextRequestSize + TOKENS_LAST_BIG_MESSAGE < MAX_TOKENS) {
+				let i = 0;
+				console.log(JSON.stringify([contextFiles]));
+				for (let contextFile of contextFiles) {
+					i += 1;
+					console.log(JSON.stringify([contextFile]));
+					let contextMessage = { role: 'system', content: 'Here is the your full report number ' + i + ' : ' + JSON.stringify([contextFile]) };
+					listRequest[listRequest.length - 1].push(contextMessage);
+				}
+				listRequest[listRequest.length - 1].push(LAST_BIG_MESSAGE);
+				console.log(chalk.magenta('Request added to the list with ' + listRequest[listRequest.length - 1].length + ' messages ' + '( ' + listRequest.length + ' requests )'));
+			} else {
+				let lastRequest = [];
+				for (let contextFile of contextFiles) {
+					let contextMessage = { role: 'system', content: 'Here is the content of the file : ' + contextFile + ' : ' + JSON.stringify([stdout]) };
+					lastRequest.push([contextMessage]);
+				}
+				lastRequest.push([ LAST_BIG_MESSAGE ]);
+				listRequest.push(lastRequest);
+				console.log(chalk.magenta('Request added to the list with ' + ( lastRequest.length + 1 ) + ' message ' + '( ' + listRequest.length + ' requests )'));
+			}
+			totalMessages += 1;
+				
 			// Display the overview of the request
 			console.log("---------------");
 			console.log("");
@@ -276,6 +308,7 @@ async function sendRequest(projectPath, messagesList) {
 
 				// Display the estimated time 
 				console.log(chalk.bold('Requests per minute : ' + chalk.cyan(requestPerMin)));
+				console.log(chalk.bold('Estimated time : ' + chalk.cyan(Math.ceil(listRequest.length/requestPerMin) + ' minutes')));
 				console.log("------------------");
 
 				// Send the requests to OpenAI
@@ -285,13 +318,17 @@ async function sendRequest(projectPath, messagesList) {
 					// Sending the request to OpenAI
 					const response = await openai.chat.completions.create({
 						model: 'gpt-3.5-turbo',
-						messages: request,
-						context: context
+						messages: request
 					});
 
 					// Update the overview variables
 					tokensUsed += Number(response.usage.total_tokens);
 					price += Number((tokensUsed/1000)*0.0005);
+
+					// Write the full report in a temporary file and add the url to the contextFiles
+					let tmpReport = fileSync();
+					writeFileSync(tmpReport.name, JSON.stringify(response.choices[0].message.content));
+					contextFiles.push(tmpReport.name);
 
 					// If it's the last request, write the README and display the overview
 					// If it's a long request, wait 1 minute to respect the tpm
