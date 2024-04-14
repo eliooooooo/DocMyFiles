@@ -1,36 +1,8 @@
-// Tmp to create a temporary file to store the messages
-// Fs to write the messages in the temporary file
-import { fileSync } from 'tmp';
-import { writeFileSync, promises, readdirSync, readFileSync, statSync } from 'fs';
+// Dependencies
+import { fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
 
-// Util to promisify the exec function
-// Child process to execute python script
-import { promisify } from 'util';
-import { exec as callbackExec } from 'child_process';
-const exec = promisify(callbackExec);
-
-// Url and path to get the __filename and __dirname variables 
-import { fileURLToPath } from 'url';
-import { join, dirname } from 'path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Get API key from .env file
-// OpenAI to send the request to the API
-import { config } from 'dotenv';
-config({ path: __dirname + '/.env' })
-import OpenAI from 'openai';
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// Readline interface to get user input from the console
-// Chalk to color the console output
-import chalk from 'chalk';
-import { createInterface } from 'readline';
-const rl = createInterface({
-	input: process.stdin,
-	output: process.stdout
-});
-
+// Import the custom functions from the project 
+import { countTokens, askQuestion, processFile, processDirectory, fileStack, messageList, processMessage } from './functions.js';
 
 // Check your OpenAI account to get your tier rate
 // The tier rate affect the number of tokens you can send in a minute, it's important to customize it to get a faster result
@@ -64,9 +36,7 @@ const description = 'A vscode extension to generate conventionnals commits based
 
 // Calculate the number of tokens in the description
 // Don't modify this part
-const TMP_DESCRIPTION = fileSync();
-writeFileSync(TMP_DESCRIPTION.name, JSON.stringify([{ role: 'system', content: description }]));
-const TOKENS_DESCRIPTION = Number((await exec(`python3 tokenCounter.py "${TMP_DESCRIPTION.name}"`)).stdout);
+const TOKENS_DESCRIPTION = await countTokens([{ role: 'system', content: description }]);
 
 
 // *------------------------------------*
@@ -74,9 +44,7 @@ const TOKENS_DESCRIPTION = Number((await exec(`python3 tokenCounter.py "${TMP_DE
 // |           GLOBAL VARIABLES         |
 // |                                    |
 // *------------------------------------*
-let fileStack = [];
 let contextFiles = [];
-let messageList = [];
 const TOKENS_PER_MINUTES = tierRate[openaiTier].tpm - 1500;
 const MAX_TOKENS = 15000;
 let messages = [
@@ -89,22 +57,16 @@ let messages = [
 // ? Use cont tokens functions ?
 // Classic instruction to generate a readme for a little project
 const CLASSIC_MESSAGE = { role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files. Here is a short description of my project : ' + description + '. Here are my project files so that you can generate a custom README for me :' };
-const TMP_CLASSIC_MESSAGE = fileSync();
-writeFileSync(TMP_CLASSIC_MESSAGE.name, JSON.stringify([CLASSIC_MESSAGE]));
-const TOKENS_CLASSIC_MESSAGE = Number((await exec(`python3 tokenCounter.py "${TMP_CLASSIC_MESSAGE.name}"`)).stdout) + TOKENS_DESCRIPTION;
+const TOKENS_CLASSIC_MESSAGE = await countTokens([CLASSIC_MESSAGE]) + TOKENS_DESCRIPTION;
 
 // Classic instruction to generate a readme for a big project
 const BIG_MESSAGE = { role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files for projects. Here is a short description of my project : ' + description + '. I want to send you multiple requests with each multiple files. Please generate a full report of the files so later you can generate a README from multiple report files.' };
-const TMP_BIG_MESSAGE = fileSync();
-writeFileSync(TMP_BIG_MESSAGE.name, JSON.stringify([BIG_MESSAGE]));
-const TOKENS_BIG_MESSAGE = Number((await exec(`python3 tokenCounter.py "${TMP_BIG_MESSAGE.name}"`)).stdout) + TOKENS_DESCRIPTION;
+const TOKENS_BIG_MESSAGE = await countTokens([BIG_MESSAGE]) + TOKENS_DESCRIPTION;
 
 // ? give an exmple of a big project readme ?
 // Last instruction to generate the readme for big project
 const LAST_BIG_MESSAGE = { role: 'system', content: 'You are a useful assistant, specialized in programming. You\'re mainly used to generate custom readme files for projects. Here is a short description of my project : ' + description + '. I have sent you multiple requests with each multiple files and you have generate multiple full report from these requests. Please generate a README based on my description and your full reports.' };
-const TMP_LAST_BIG_MESSAGE = fileSync();
-writeFileSync(TMP_LAST_BIG_MESSAGE.name, JSON.stringify([LAST_BIG_MESSAGE]));
-const TOKENS_LAST_BIG_MESSAGE = Number((await exec(`python3 tokenCounter.py "${TMP_LAST_BIG_MESSAGE.name}"`)).stdout) + TOKENS_DESCRIPTION;
+const TOKENS_LAST_BIG_MESSAGE = countTokens([LAST_BIG_MESSAGE]) + TOKENS_DESCRIPTION;
 
 
 // *------------------------------------*
@@ -112,71 +74,9 @@ const TOKENS_LAST_BIG_MESSAGE = Number((await exec(`python3 tokenCounter.py "${T
 // |           FUNCTIONS                |
 // |                                    |
 // *------------------------------------*
-/**
- * Count the number of tokens in a message
- * @param {string} messages 
- * 
- * @returns {Promise<number>}
- */
-async function countTokens(messages) {
-	const tmpFile = fileSync();
-	writeFileSync(tmpFile.name, JSON.stringify(messages));
-	const tokens = Number((await exec(`python3 tokenCounter.py "${tmpFile.name}"`)).stdout);
-	return tokens;
-}
 
-/**
- * Ask a question to the user
- * @param {string} question
- * 
- * @returns {Promise<string>}
- */
-async function askQuestion(question) {
-    return new Promise((resolve) => {
-        rl.question(question, (answer) => {
-            resolve(answer);
-        });
-    });
-}
 
-/**
- * Process the message and create the requests list
- * @param {string} message
- * 
- * @returns {void}
- */
-async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles) {
-	// TODO: Write the message in a temporary file and rename the file with his name
-	let tmpMessage = fileSync();
-	writeFileSync(tmpMessage.name, JSON.stringify([message]));
 
-	// Count the number of tokens in the message with a python script
-	let stdout = (await exec(`python3 tokenCounter.py "${tmpMessage.name}"`)).stdout;
-
-	// If the message is too big, it will be ignored (based on the MAX_TOKENS variable)
-	if (Number(stdout) > MAX_TOKENS) {
-		console.log(chalk.red('Message too big, it will be ignored.'));
-		ignoredFiles += 1;
-	} else {
-		// If the message is too big to be added to the request, it will be added to the listRequest
-		if (listMessagesSize + Number(stdout) > MAX_TOKENS) {
-			// Push the request to the listRequest and update overview variables
-			listRequest.push(listRequestMessages);
-			totalMessages += listRequestMessages.length;
-			
-			console.log(chalk.magenta('Request added to the list with ' + listRequestMessages.length + ' messages ' + '( ' + listRequest.length + ' requests )'));
-			
-			// Clear variables for the next request
-			listRequestMessages = [ BIG_MESSAGE ];
-			listMessagesSize = 0;
-		}
-		// Push the message to the listMessages and update overview variables
-		listRequestMessages.push(message);
-		listMessagesSize += Number(stdout);
-	}
-
-	return Promise.resolve({ listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles });
-}
 
 /**
  * Send the request to OpenAI
@@ -407,56 +307,6 @@ async function sendRequest(projectPath, messagesList) {
 
 	// Close the readline interface
 	rl.close();
-}
-
-/**
- * Process the file
- * @param {string} filePath
- * 
- * @returns {void}
- */
-async function processFile(filePath) {
-	try {
-		// Collect the data from the file and json stringify it to send it to the API
-		let data = await promises.readFile(join(__dirname, filePath), 'utf8');
-		data = JSON.stringify(data);
-
-		// Push the message to the messagesList array
-		messageList.push({ role: 'user', content: 'Here is my ' + filePath + ' file : ' + data + '' });
-	} catch (err) {
-		console.error(err);
-	}
-}
-
-/**
- * Process the project directory (recursive)
- * @param {string} projectPath
- * @param {string[]} avoid
- * 
- * @returns {void}
- */
-async function processDirectory(projectPath, avoid) {
-	try {
-		// Get all the childs of the project directory
-		const childs = readdirSync(projectPath);
-	
-		for (const child of childs) {		
-			const childPath = join(projectPath, child);
-
-			// Avoid some files or directories
-			if (avoid.some(av => childPath.includes(av))) continue;
-			
-			// If the child is a file, push it to the fileStack
-			// If the child is a directory, process it
-			if (statSync(childPath).isFile()) {
-				fileStack.push(childPath);
-			} else {
-				processDirectory(childPath, avoid);
-			}
-		}
-	} catch (err) {
-		console.error(err);
-	}
 }
 
 
