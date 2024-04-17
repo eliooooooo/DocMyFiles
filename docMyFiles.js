@@ -6,28 +6,14 @@ import { countTokens, askQuestion, processFile, processDirectory, fileStack, mes
 
 // Check your OpenAI account to get your tier rate
 // The tier rate affect the number of tokens you can send in a minute, it's important to customize it to get a faster result
-export const tierRate = {
-	"Tier 1": {
-		"tpm": 60000
-	},"Tier 2": {
-		"tpm": 80000
-	},"Tier 3": {
-		"tpm": 160000
-	},"Tier 4": {
-		"tpm": 1000000
-	},"Tier 5": {
-		"tpm": 2000000
-	},"custom": {
-		"tpm": "custom value"
-	}
-}
+
 
 // *------------------------------------*
 // |                                    |
 // |         CUSTOMIZE VARIABLES        |
 // |                                    |
 // *------------------------------------*
-const openaiTier = "Tier 1"; // Don't forget to custom the openai tier, it refers to the tierRate object
+export const openaiTier = 'Tier 1'; // Don't forget to custom the openai tier, it refers to the tierRate object
 const projectPath = './project/ChartMyTime/'; // Don't forget to custom the project path
 const avoid = ['.git', 'icons', 'package-lock.json', 'composer.lock', '.vscode' ]; // Don't forget to custom the avoid table to avoid some files or directories
 const description = 'A vscode extension to generate conventionnals commits based on user inputs.'; // Don't forget to custom the description of your project

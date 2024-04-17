@@ -18,7 +18,7 @@ const __dirname = dirname(__filename);
 // Get API key from .env file
 // OpenAI to send the request to the API
 import { config } from 'dotenv';
-config({ path: __dirname + '/.env' })
+config({ path: __dirname + '/.env' });
 import OpenAI from 'openai';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
