@@ -6,7 +6,7 @@ import { countTokens, askQuestion, processFile, processDirectory, fileStack, mes
 
 // Check your OpenAI account to get your tier rate
 // The tier rate affect the number of tokens you can send in a minute, it's important to customize it to get a faster result
-const tierRate = {
+export const tierRate = {
 	"Tier 1": {
 		"tpm": 60000
 	},"Tier 2": {
@@ -28,7 +28,7 @@ const tierRate = {
 // |                                    |
 // *------------------------------------*
 const openaiTier = "Tier 1"; // Don't forget to custom the openai tier, it refers to the tierRate object
-const projectPath = './project/WriteMyCommits/'; // Don't forget to custom the project path
+const projectPath = './project/ChartMyTime/'; // Don't forget to custom the project path
 const avoid = ['.git', 'icons', 'package-lock.json', 'composer.lock', '.vscode' ]; // Don't forget to custom the avoid table to avoid some files or directories
 const description = 'A vscode extension to generate conventionnals commits based on user inputs.'; // Don't forget to custom the description of your project
 
@@ -67,14 +67,17 @@ const LAST_BIG_MESSAGE = { role: 'system', content: 'You are a useful assistant,
 const TOKENS_LAST_BIG_MESSAGE = countTokens([LAST_BIG_MESSAGE]) + TOKENS_DESCRIPTION;
 
 
-
-
-
 // *------------------------------------*
 // |                                    |
 // |           MAIN PROGRAM             |
 // |                                    |
 // *------------------------------------*
+
+let MESSAGES_STACK = {
+	"Classic": { "message": CLASSIC_MESSAGE, "tokens": TOKENS_CLASSIC_MESSAGE },
+	"Big": { "message": BIG_MESSAGE, "tokens": TOKENS_BIG_MESSAGE },
+	"LastBig": { "message": LAST_BIG_MESSAGE, "tokens": TOKENS_LAST_BIG_MESSAGE }
+}
 
 // get all files (- avoid) in the project directory
 processDirectory(projectPath, avoid);
@@ -83,5 +86,5 @@ console.log(chalk.bold('Files to process : '), fileStack);
 
 // process all files
 Promise.all(fileStack.map(element => processFile(element)))
-.then(() => { sendRequest(projectPath, messageList); })
+.then(() => { sendRequest(projectPath, messageList, MESSAGES_STACK, MAX_TOKENS, TOKENS_PER_MINUTES); })
 .catch(err => console.error(err));
