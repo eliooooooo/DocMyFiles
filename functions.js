@@ -45,7 +45,7 @@ export async function countTokens(messages) {
  * 
  * @returns {Promise<string>}
  */
-export async function askQuestion(question) {
+async function askQuestion(question) {
     return new Promise((resolve) => {
         rl.question(question, (answer) => {
             resolve(answer);
@@ -109,7 +109,7 @@ export async function processDirectory(projectPath, avoid) {
  * 
  * @returns {void}
  */
-export async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles) {
+async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles) {
 	// TODO: Write the message in a temporary file and rename the file with his name
 	let tmpMessage = fileSync();
 	writeFileSync(tmpMessage.name, JSON.stringify([message]));
@@ -140,6 +140,25 @@ export async function processMessage(message, listRequest, listRequestMessages, 
 	}
 
 	return Promise.resolve({ listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles });
+}
+
+/**
+ * Display a warning message in the console
+ * @param {bool} longRequest 
+ * @param {int} requestSize 
+ * 
+ * @returns {void}
+ */
+function displayWarning(longRequest, requestSize) {
+	console.log("");
+	console.log(chalk.red('/---------------------------------------------------------------------------\\'));
+	console.log(chalk.red('Your request is too big, the request will be send in multiple parts.'));
+	if (longRequest) {
+		console.log(chalk.red('You are using the ' + openaiTier + ' with a tpm (tokens per minute) of ' + TOKENS_PER_MINUTES + ' tokens'));
+		console.log(chalk.red('To respect this restriction, requests will be delayed.' + chalk.bold(' Estimated time : ' + Math.ceil(requestSize/TOKENS_PER_MINUTES) + ' minutes')));
+	}
+	console.log(chalk.red('Please make sure you have correctly customize the avoid table in the script.'))
+	console.log(chalk.red('\\--------------------------------------------------------------------------/'));
 }
 
 /**
@@ -177,17 +196,8 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 		bigRequest = true;
 		
 		// Display a warning message
-		// ? Deplace this part in a function
 		// TODO: Move the estimated time just before sending the request
-		console.log("");
-		console.log(chalk.red('/---------------------------------------------------------------------------\\'));
-		console.log(chalk.red('Your request is too big, the request will be send in multiple parts.'));
-		if (longRequest) {
-			console.log(chalk.red('You are using the ' + openaiTier + ' with a tpm (tokens per minute) of ' + TOKENS_PER_MINUTES + ' tokens'));
-			console.log(chalk.red('To respect this restriction, requests will be delayed.' + chalk.bold(' Estimated time : ' + Math.ceil(requestSize/TOKENS_PER_MINUTES) + ' minutes')));
-		}
-		console.log(chalk.red('Please make sure you have correctly customize the avoid table in the script.'))
-		console.log(chalk.red('\\--------------------------------------------------------------------------/'));
+		displayWarning(longRequest, requestSize);
 	} 
 
 	// ? Deplace here the estimated number of requests. So we can estimate more precisely the cost for a big request
