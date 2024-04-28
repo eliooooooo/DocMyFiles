@@ -142,7 +142,7 @@ function displayWarning(longRequest, requestSize) {
 		console.log(chalk.red('To respect this restriction, requests will be delayed.' + chalk.bold(' Estimated time : ' + Math.ceil(requestSize/TOKENS_PER_MINUTES) + ' minutes')));
 	}
 	console.log(chalk.red('Please make sure you have correctly customize the avoid table in the script.'))
-	console.log(chalk.red('\\--------------------------------------------------------------------------/'));
+	console.log(chalk.red('\\---------------------------------------------------------------------------/'));
 }
 
 /**
@@ -178,7 +178,6 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 		bigRequest = true;
 		
 		// Display a warning message
-		// TODO: Move the estimated time just before sending the request
 		displayWarning(longRequest, requestSize);
 	} 
 
