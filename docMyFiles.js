@@ -4,16 +4,8 @@ import { fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync,
 // Import the custom functions from the project 
 import { countTokens, processFile, processDirectory, fileStack, messageList, sendRequest } from './functions.js';
 
-
-// *------------------------------------*
-// |                                    |
-// |         CUSTOMIZE VARIABLES        |
-// |                                    |
-// *------------------------------------*
-export const openaiTier = 'Tier 1'; // Don't forget to custom the openai tier, it refers to the tierRate object
-const projectPath = './project/ChartMyTime/'; // Don't forget to custom the project path
-const avoid = ['.git', 'icons', 'package-lock.json', 'composer.lock', '.vscode' ]; // Don't forget to custom the avoid table to avoid some files or directories
-const description = 'A vscode extension to generate conventionnals commits based on user inputs.'; // Don't forget to custom the description of your project
+// Import the variables from the project
+import { projectPath, avoid, description, tierRate, openaiTier } from './variables.js';
 
 
 // *------------------------------------*

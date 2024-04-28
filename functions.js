@@ -1,27 +1,11 @@
 // Dependencies
 import { fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
-import { openaiTier } from './docMyFiles.js';
+import { openaiTier, tierRate } from './variables.js';
 
 // Variables
 export let fileStack = [];
 export let messageList = [];
 let MAX_TOKENS = 15000;
-
-const tierRate = {
-	"Tier 1": {
-		"tpm": 60000
-	},"Tier 2": {
-		"tpm": 80000
-	},"Tier 3": {
-		"tpm": 160000
-	},"Tier 4": {
-		"tpm": 1000000
-	},"Tier 5": {
-		"tpm": 2000000
-	},"custom": {
-		"tpm": "custom value"
-	}
-};
 
 let TOKENS_PER_MINUTES = tierRate[openaiTier].tpm - 1500;
 
@@ -166,8 +150,6 @@ function displayWarning(longRequest, requestSize) {
  * @param {string} projectPath
  * @param {string[]} messagesList
  * @param {object} messageStack
- * @param {number} MAX_TOKENS
- * @param {number} TOKENS_PER_MINUTES
  * 
  * @returns {void}
  */
