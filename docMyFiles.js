@@ -1,11 +1,11 @@
 // Dependencies
-import { fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
+import { fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './src/dependencies.js';
 
 // Import the custom functions from the project 
-import { countTokens, processFile, processDirectory, fileStack, messageList, sendRequest } from './functions.js';
+import { countTokens, processFile, processDirectory, fileStack, messageList, sendRequest } from './src/functions.js';
 
 // Import the variables from the project
-import { projectPath, avoid, description, tierRate, openaiTier } from './variables.js';
+import { projectPath, avoid, description, tierRate, openaiTier } from './src/variables.js';
 
 
 // *------------------------------------*
