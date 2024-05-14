@@ -46,7 +46,7 @@ async function askQuestion(question) {
 export async function processFile(filePath) {
 	try {
 		// Collect the data from the file and json stringify it to send it to the API
-		let data = await promises.readFile(join(__dirname, filePath), 'utf8');
+		let data = await promises.readFile(join("./", filePath), 'utf8');
 		data = JSON.stringify(data);
 
 		// Push the message to the messagesList array
