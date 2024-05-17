@@ -139,10 +139,63 @@ function displayWarning(longRequest, requestSize) {
 	console.log(chalk.red('Your request is too big, the request will be send in multiple parts.'));
 	if (longRequest) {
 		console.log(chalk.red('You are using the ' + openaiTier + ' with a tpm (tokens per minute) of ' + TOKENS_PER_MINUTES + ' tokens'));
-		console.log(chalk.red('To respect this restriction, requests will be delayed.' + chalk.bold(' Estimated time : ' + Math.ceil(requestSize/TOKENS_PER_MINUTES) + ' minutes')));
+		console.log(chalk.red('To respect this restriction, requests will be delayed.'));
 	}
 	console.log(chalk.red('Please make sure you have correctly customize the avoid table in the script.'))
 	console.log(chalk.red('\\---------------------------------------------------------------------------/'));
+}
+
+/**
+ * Send the last request to OpenAI
+ * 
+ * @returns {void}
+ */
+async function sendLastRequest() {
+	// Initialize variables for the last request
+	let lastRequest = [];
+	let contextRequestSize = 0;
+	let i = 0;
+
+	// Add the last message to the last request
+	// If the last request is too big, create a new request
+	lastRequest.push(LAST_BIG_MESSAGE);
+	for (let contextFile of contextFiles) {
+		i += 1;
+		let fileContent = readFileSync(contextFile, 'utf8');
+		let contextMessage = { role: 'system', content: 'Here is the your full report number ' + i + ' : ' + JSON.stringify([fileContent]) };
+		lastRequest.push(contextMessage);
+	}
+
+	// Count the number of tokens in the message with a python script
+	for (let messages of lastRequest) {
+		let messageFile = fileSync();
+		writeFileSync(messageFile.name, JSON.stringify([messages]));
+		let stdout = (await exec(`python3 tokenCounter.py "${messageFile.name}"`)).stdout;
+		contextRequestSize += Number(stdout);
+	}
+
+	if (contextRequestSize  < MAX_TOKENS) {
+		console.log(chalk.magenta('Sending instructions (' + lastRequest.length + ' messages )'));
+		const response = await openai.chat.completions.create({
+			model: 'gpt-3.5-turbo',
+			messages: lastRequest
+		});
+
+		// Generating the README
+		writeFileSync(join(__dirname, projectPath, 'README.md'), response.choices[0].message.content + footer);
+
+		// Update the overview variables
+		tokensUsed += Number(response.usage.total_tokens);
+		price = Number((tokensUsed/1000)*0.0005);
+	} else {
+		console.log(chalk.yellow('Too big request, the generation of the README will be stopped.'));
+		rl.close();
+	}
+
+	// Display the overview
+	console.log("------------------")
+	console.log('README generated in : ' , chalk.green(join(__dirname, projectPath, 'README.md')));
+	console.log('Tokens used : ', tokensUsed , '( ' + chalk.red('+- ' + price.toFixed(3) + ' $') + ' )');
 }
 
 /**
@@ -269,55 +322,10 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 					writeFileSync(tmpReport.name, JSON.stringify(response.choices[0].message.content));
 					contextFiles.push(tmpReport.name);
 
-					// ! Move this part in a function
 					// If it's the last request, write the README and display the overview
 					// If it's a long request, wait 1 minute to respect the tpm
 					if (i === listRequest.length) {
-						// Initialize variables for the last request
-						let lastRequest = [];
-						let contextRequestSize = 0;
-						let i = 0;
-						
-						// Add the last message to the last request
-						// If the last request is too big, create a new request
-						lastRequest.push(LAST_BIG_MESSAGE);
-						for (let contextFile of contextFiles) {
-							i += 1;
-							let fileContent = readFileSync(contextFile, 'utf8');
-							let contextMessage = { role: 'system', content: 'Here is the your full report number ' + i + ' : ' + JSON.stringify([fileContent]) };
-							lastRequest.push(contextMessage);
-						}
-						
-						// Count the number of tokens in the message with a python script
-						for (let messages of lastRequest) {
-							let messageFile = fileSync();
-							writeFileSync(messageFile.name, JSON.stringify([messages]));
-							let stdout = (await exec(`python3 tokenCounter.py "${messageFile.name}"`)).stdout;
-							contextRequestSize += Number(stdout);
-						}
-						
-						if (contextRequestSize  < MAX_TOKENS) {
-							console.log(chalk.magenta('Sending instructions (' + lastRequest.length + ' messages )'));
-							const response = await openai.chat.completions.create({
-								model: 'gpt-3.5-turbo',
-								messages: lastRequest
-							});
-
-							// Generating the README
-							writeFileSync(join(__dirname, projectPath, 'README.md'), response.choices[0].message.content + footer);
-
-							// Update the overview variables
-							tokensUsed += Number(response.usage.total_tokens);
-							price = Number((tokensUsed/1000)*0.0005);
-						} else {
-							console.log(chalk.yellow('Too big request, the generation of the README will be stopped.'));
-							rl.close();
-						}
-
-						// Display the overview
-						console.log("------------------")
-						console.log('README generated in : ' , chalk.green(join(__dirname, projectPath, 'README.md')));
-						console.log('Tokens used : ', tokensUsed , '( ' + chalk.red('+- ' + price.toFixed(3) + ' $') + ' )');
+						sendLastRequest();
 					} else {
 						// If it's a long request, wait 1 minute to respect the tpm
 						if (longRequest && i % requestPerMin === 0) {
