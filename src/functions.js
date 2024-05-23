@@ -93,8 +93,10 @@ export async function processDirectory(projectPath, avoid) {
  * 
  * @returns {void}
  */
-async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles) {
+async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS) {
 	// TODO: Write the message in a temporary file and rename the file with his name
+	console.log('Processing message...');
+	console.log(MAX_TOKENS);
 	let tmpMessage = fileSync();
 	writeFileSync(tmpMessage.name, JSON.stringify([message]));
 
@@ -102,12 +104,14 @@ async function processMessage(message, listRequest, listRequestMessages, listMes
 	let stdout = (await exec(`python3 tokenCounter.py "${tmpMessage.name}"`)).stdout;
 
 	// If the message is too big, it will be ignored (based on the MAX_TOKENS variable)
-	if (Number(stdout) > MAX_TOKENS) {
+	if (Number(stdout) >= MAX_TOKENS) {
 		console.log(chalk.red('Message too big, it will be ignored.'));
 		ignoredFiles += 1;
 	} else {
+		console.log("else");
 		// If the message is too big to be added to the request, it will be added to the listRequest
 		if (listMessagesSize + Number(stdout) > MAX_TOKENS) {
+			console.log(chalk.yellow('Request too big, creating a new request...'));
 			// Push the request to the listRequest and update overview variables
 			listRequest.push(listRequestMessages);
 			totalMessages += listRequestMessages.length;
@@ -121,9 +125,11 @@ async function processMessage(message, listRequest, listRequestMessages, listMes
 		// Push the message to the listMessages and update overview variables
 		listRequestMessages.push(message);
 		listMessagesSize += Number(stdout);
+		console.log(chalk.green('Message added to the request.'));
+		console.log(chalk.cyan('Request size : ' + listMessagesSize + ' tokens'));
 	}
 
-	return Promise.resolve({ listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles });
+	return Promise.resolve({ listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS });
 }
 
 /**
@@ -255,7 +261,7 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 			let listRequest = [];
 			let listRequestMessages = [	messageStack.Big.message ];
 			let listMessagesSize = 0;
-			let totalMessages = 0;
+			let totalMessages = 1;
 			let ignoredFiles = 0;
 			
 			// Define the number of request to send
