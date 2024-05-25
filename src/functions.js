@@ -173,7 +173,8 @@ async function sendLastRequest(messageStack, MAX_TOKENS, contextFiles, tokensUse
 		let stdout = (await exec(`python3 tokenCounter.py "${messageFile.name}"`)).stdout;
 		contextRequestSize += Number(stdout);
 	}
-
+	
+	const dirPath = join(__dirname, '..');
 	if (messageStack.LastBig.tokens < MAX_TOKENS) {
 		console.log(chalk.magenta('Sending instructions (' + lastRequest.length + ' messages )'));
 		const response = await openai.chat.completions.create({
@@ -182,7 +183,7 @@ async function sendLastRequest(messageStack, MAX_TOKENS, contextFiles, tokensUse
 		});
 
 		// Generating the README
-		writeFileSync(join(__dirname, projectPath, 'README.md'), response.choices[0].message.content + footer);
+		writeFileSync(join(dirPath, projectPath, 'README.md'), response.choices[0].message.content + footer);
 
 		// Update the overview variables
 		tokensUsed += Number(response.usage.total_tokens);
@@ -194,7 +195,7 @@ async function sendLastRequest(messageStack, MAX_TOKENS, contextFiles, tokensUse
 
 	// Display the overview
 	console.log("------------------")
-	console.log('README generated in : ' , chalk.green(join(__dirname, projectPath, 'README.md')));
+	console.log('README generated in : ' , chalk.green(join(dirPath, projectPath, 'README.md')));
 	console.log('Tokens used : ', tokensUsed , '( ' + chalk.red('+- ' + price.toFixed(3) + ' $') + ' )');
 }
 
@@ -358,11 +359,12 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 			const price = (tokensUsed/1000)*0.0005;
 
 			// Generating the README
-			writeFileSync(join(__dirname, projectPath, 'README.md'), response.choices[0].message.content + footer);
+			const dirPath = join(__dirname, '..');
+			writeFileSync(join(dirPath, projectPath, 'README.md'), response.choices[0].message.content + footer);
 
 			// Display the overview
 			console.log("------------------")
-			console.log('README generated in : ' , chalk.green(join(__dirname, projectPath, 'README.md')));
+			console.log('README generated in : ' , chalk.green(join(dirPath, projectPath, 'README.md')));
 			console.log('Tokens used : ', tokensUsed , '( ' + chalk.red('+- ' + price.toFixed(3) + ' $') + ' )');
 		}
 	} else {
