@@ -93,10 +93,8 @@ export async function processDirectory(projectPath, avoid) {
  * 
  * @returns {void}
  */
-async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS) {
+async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS, messageStack) {
 	// TODO: Write the message in a temporary file and rename the file with his name
-	console.log('Processing message...');
-	console.log(MAX_TOKENS);
 	let tmpMessage = fileSync();
 	writeFileSync(tmpMessage.name, JSON.stringify([message]));
 
@@ -108,10 +106,8 @@ async function processMessage(message, listRequest, listRequestMessages, listMes
 		console.log(chalk.red('Message too big, it will be ignored.'));
 		ignoredFiles += 1;
 	} else {
-		console.log("else");
 		// If the message is too big to be added to the request, it will be added to the listRequest
 		if (listMessagesSize + Number(stdout) > MAX_TOKENS) {
-			console.log(chalk.yellow('Request too big, creating a new request...'));
 			// Push the request to the listRequest and update overview variables
 			listRequest.push(listRequestMessages);
 			totalMessages += listRequestMessages.length;
@@ -119,14 +115,12 @@ async function processMessage(message, listRequest, listRequestMessages, listMes
 			console.log(chalk.magenta('Request added to the list with ' + listRequestMessages.length + ' messages ' + '( ' + listRequest.length + ' requests )'));
 			
 			// Clear variables for the next request
-			listRequestMessages = [ BIG_MESSAGE ];
-			listMessagesSize = 0;
+			listRequestMessages = [ messageStack.Big.message ];
+			listMessagesSize = messageStack.Big.tokens;
 		}
 		// Push the message to the listMessages and update overview variables
 		listRequestMessages.push(message);
 		listMessagesSize += Number(stdout);
-		console.log(chalk.green('Message added to the request.'));
-		console.log(chalk.cyan('Request size : ' + listMessagesSize + ' tokens'));
 	}
 
 	return Promise.resolve({ listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS });
@@ -156,7 +150,7 @@ function displayWarning(longRequest, requestSize) {
  * 
  * @returns {void}
  */
-async function sendLastRequest() {
+async function sendLastRequest(messageStack, MAX_TOKENS, contextFiles, tokensUsed, price, footer) {
 	// Initialize variables for the last request
 	let lastRequest = [];
 	let contextRequestSize = 0;
@@ -164,7 +158,7 @@ async function sendLastRequest() {
 
 	// Add the last message to the last request
 	// If the last request is too big, create a new request
-	lastRequest.push(LAST_BIG_MESSAGE);
+	lastRequest.push(messageStack.LastBig.message);
 	for (let contextFile of contextFiles) {
 		i += 1;
 		let fileContent = readFileSync(contextFile, 'utf8');
@@ -180,7 +174,7 @@ async function sendLastRequest() {
 		contextRequestSize += Number(stdout);
 	}
 
-	if (contextRequestSize  < MAX_TOKENS) {
+	if (messageStack.LastBig.tokens < MAX_TOKENS) {
 		console.log(chalk.magenta('Sending instructions (' + lastRequest.length + ' messages )'));
 		const response = await openai.chat.completions.create({
 			model: 'gpt-3.5-turbo',
@@ -217,6 +211,7 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 	let bigRequest = false;
 	let longRequest = false;
 	let requestSize = 0;
+	let contextFiles = [];
 
 	// Collect the messages in a temporary file
 	let tmpMessagesList = fileSync();
@@ -273,7 +268,7 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 
 			// Processing all messages to split them into several requests
 			for (let message of messagesList) {
-				({ listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS } = await processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS));
+				({ listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS } = await processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS, messageStack));
 			};
 
 			// Push the last request and update overview variables
