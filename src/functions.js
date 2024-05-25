@@ -150,7 +150,7 @@ function displayWarning(longRequest, requestSize) {
  * 
  * @returns {void}
  */
-async function sendLastRequest(messageStack, MAX_TOKENS, contextFiles, tokensUsed, price, footer) {
+async function sendLastRequest(messageStack, MAX_TOKENS, contextFiles, tokensUsed, projectPath, price, footer) {
 	// Initialize variables for the last request
 	let lastRequest = [];
 	let contextRequestSize = 0;
@@ -326,7 +326,7 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 					// If it's the last request, write the README and display the overview
 					// If it's a long request, wait 1 minute to respect the tpm
 					if (i === listRequest.length) {
-						sendLastRequest();
+						sendLastRequest(messageStack, MAX_TOKENS, contextFiles, tokensUsed, projectPath, price, footer);
 					} else {
 						// If it's a long request, wait 1 minute to respect the tpm
 						if (longRequest && i % requestPerMin === 0) {
