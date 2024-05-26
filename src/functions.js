@@ -90,8 +90,15 @@ export async function processDirectory(projectPath, avoid) {
 /**
  * Process the message and create the requests list
  * @param {string} message
+ * @param {object[]} listRequest
+ * @param {object[]} listRequestMessages
+ * @param {number} listMessagesSize
+ * @param {number} totalMessages
+ * @param {number} ignoredFiles
+ * @param {number} MAX_TOKENS
+ * @param {object} messageStack
  * 
- * @returns {void}
+ * @returns {Promise<object>}
  */
 async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS, messageStack) {
 	// TODO: Write the message in a temporary file and rename the file with his name
@@ -129,11 +136,10 @@ async function processMessage(message, listRequest, listRequestMessages, listMes
 /**
  * Display a warning message in the console
  * @param {bool} longRequest 
- * @param {int} requestSize 
  * 
  * @returns {void}
  */
-function displayWarning(longRequest, requestSize) {
+function displayWarning(longRequest) {
 	console.log("");
 	console.log(chalk.red('/---------------------------------------------------------------------------\\'));
 	console.log(chalk.red('Your request is too big, the request will be send in multiple parts.'));
@@ -147,6 +153,13 @@ function displayWarning(longRequest, requestSize) {
 
 /**
  * Send the last request to OpenAI
+ * @param {object} messageStack
+ * @param {number} MAX_TOKENS
+ * @param {string[]} contextFiles
+ * @param {number} tokensUsed
+ * @param {string} projectPath
+ * @param {number} price
+ * @param {string} footer
  * 
  * @returns {void}
  */
@@ -233,11 +246,8 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 		bigRequest = true;
 		
 		// Display a warning message
-		displayWarning(longRequest, requestSize);
+		displayWarning(longRequest);
 	} 
-
-	// ? Deplace here the estimated number of requests. So we can estimate more precisely the cost for a big request
-	// TODO: Deplace it
 
 	// Display the estimated price of the request
 	let estimatedPrice = (estimatedClassicPrice/1000)*0.0005;
