@@ -1,4 +1,5 @@
 // Dependencies
+import { renameSync } from 'fs';
 import { fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
 import { openaiTier, tierRate } from './variables.js';
 
@@ -50,7 +51,7 @@ export async function processFile(filePath) {
 		data = JSON.stringify(data);
 
 		// Push the message to the messagesList array
-		messageList.push({ role: 'user', content: 'Here is my ' + filePath + ' file : ' + data + '' });
+		messageList.push({file : filePath, query:{ role: 'user', content: 'Here is my ' + filePath + ' file : ' + data + '' }});
 	} catch (err) {
 		console.error(err);
 	}
@@ -103,14 +104,15 @@ export async function processDirectory(projectPath, avoid) {
 async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS, messageStack) {
 	// TODO: Write the message in a temporary file and rename the file with his name
 	let tmpMessage = fileSync();
-	writeFileSync(tmpMessage.name, JSON.stringify([message]));
+	writeFileSync(tmpMessage.name, JSON.stringify([message.query]));
+	renameSync(tmpMessage.name, message.file);
 
 	// Count the number of tokens in the message with a python script
-	let stdout = (await exec(`python3 tokenCounter.py "${tmpMessage.name}"`)).stdout;
+	let stdout = (await exec(`python3 tokenCounter.py "${message.file}"`)).stdout;
 
 	// If the message is too big, it will be ignored (based on the MAX_TOKENS variable)
 	if (Number(stdout) >= MAX_TOKENS) {
-		console.log(chalk.red('Message too big, it will be ignored.'));
+		console.log(chalk.red(message.file + ' is too big, it will be ignored.'));
 		ignoredFiles += 1;
 	} else {
 		// If the message is too big to be added to the request, it will be added to the listRequest
@@ -229,10 +231,11 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 
 	// Collect the messages in a temporary file
 	let tmpMessagesList = fileSync();
-	writeFileSync(tmpMessagesList.name, JSON.stringify(messagesList)); 
+	writeFileSync(tmpMessagesList.name, JSON.stringify(messagesList.query)); 
+	renameSync(tmpMessagesList.name, messageList.file);
 
 	// Count the number of tokens in the message with a python script
-	let stdout = (await exec(`python3 tokenCounter.py "${tmpMessagesList.name}"`)).stdout;
+	let stdout = (await exec(`python3 tokenCounter.py "${messageList.file}"`)).stdout;
 	requestSize = Number(stdout);
 	
 	// The price of the request + his firts instruction if it's not too big
