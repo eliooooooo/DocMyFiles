@@ -27,5 +27,5 @@ export const tierRate = {
 // *------------------------------------*
 export const openaiTier = 'Tier 1'; // Don't forget to custom the openai tier, it refers to the tierRate object
 export const projectPath = './project/ChartMyTime/'; // Don't forget to custom the project path
-export const avoid = ['.git', 'icons', 'package-lock.json', 'composer.lock', '.vscode' ]; // Don't forget to custom the avoid table to avoid some files or directories
+export const avoid = ['.git', 'icons', '.vscode' ]; // Don't forget to custom the avoid table to avoid some files or directories
 export const description = 'A vscode extension to generate conventionnals commits based on user inputs.'; // Don't forget to custom the description of your project
