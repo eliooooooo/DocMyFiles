@@ -1,5 +1,5 @@
 // Dependencies
-import { renameSync, fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
+import { renameSync, fileSync, writeFileSync, promises, readdirSync, basename, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
 import { openaiTier, tierRate } from './variables.js';
 
 // Variables
@@ -43,14 +43,14 @@ async function askQuestion(question) {
  * 
  * @returns {void}
  */
-export async function processFile(filePath) {
+export async function processFile(filePath, messageList) {
 	try {
 		// Collect the data from the file and json stringify it to send it to the API
 		let data = await promises.readFile(join("./", filePath), 'utf8');
 		data = JSON.stringify(data);
 
 		// Push the message to the messagesList array
-		messageList.push({file : filePath, query:{ role: 'user', content: 'Here is my ' + filePath + ' file : ' + data + '' }});
+		messageList.push({ role: 'user', content: 'Here is my {url}' + filePath + '{url} file : ' + data + '' });
 	} catch (err) {
 		console.error(err);
 	}
@@ -101,17 +101,23 @@ export async function processDirectory(projectPath, avoid) {
  * @returns {Promise<object>}
  */
 async function processMessage(message, listRequest, listRequestMessages, listMessagesSize, totalMessages, ignoredFiles, MAX_TOKENS, messageStack) {
-	// TODO: Write the message in a temporary file and rename the file with his name
 	let tmpMessage = fileSync();
-	writeFileSync(tmpMessage.name, JSON.stringify([message.query]));
-	renameSync(tmpMessage.name, message.file);
+	let messageTmp = JSON.stringify([message]);
+	let fileUrl = "";
+	writeFileSync(tmpMessage.name, messageTmp);
+
+	let expression = messageTmp.match(/\{url\}(.*)\{url\}/);
+	if (expression) {
+		fileUrl = expression[1];
+	}
 
 	// Count the number of tokens in the message with a python script
-	let stdout = (await exec(`python3 tokenCounter.py "${message.file}"`)).stdout;
+	let stdout = (await exec(`python3 tokenCounter.py "${tmpMessage.name}"`)).stdout;
+
 
 	// If the message is too big, it will be ignored (based on the MAX_TOKENS variable)
 	if (Number(stdout) >= MAX_TOKENS) {
-		console.log(chalk.red(message.file + ' is too big, it will be ignored.'));
+		console.log(chalk.red('The file ' + fileUrl + ' is too big, it will be ignored.'));
 		ignoredFiles += 1;
 	} else {
 		// If the message is too big to be added to the request, it will be added to the listRequest
@@ -230,11 +236,10 @@ export async function sendRequest(projectPath, messagesList, messageStack) {
 
 	// Collect the messages in a temporary file
 	let tmpMessagesList = fileSync();
-	writeFileSync(tmpMessagesList.name, JSON.stringify(messagesList.query)); 
-	renameSync(tmpMessagesList.name, messageList.file);
-
+	writeFileSync(tmpMessagesList.name, JSON.stringify(messagesList)); 
+	
 	// Count the number of tokens in the message with a python script
-	let stdout = (await exec(`python3 tokenCounter.py "${messageList.file}"`)).stdout;
+	let stdout = (await exec(`python3 tokenCounter.py "${tmpMessagesList.name}"`)).stdout;
 	requestSize = Number(stdout);
 	
 	// The price of the request + his firts instruction if it's not too big

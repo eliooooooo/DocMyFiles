@@ -11,7 +11,7 @@ const exec = promisify(callbackExec);
 
 // Url and path to get the __filename and __dirname variables 
 import { fileURLToPath } from 'url';
-import { join, dirname } from 'path';
+import { join, dirname, basename } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -32,4 +32,4 @@ const rl = createInterface({
 });
 
 // Export the variables
-export { renameSync, fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl };
+export { renameSync, fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, basename, __filename, __dirname, config, OpenAI, openai, chalk, rl };

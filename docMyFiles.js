@@ -63,6 +63,6 @@ processDirectory(projectPath, avoid);
 console.log(chalk.bold('Files to process : '), fileStack);
 
 // process all files
-Promise.all(fileStack.map(element => processFile(element)))
+Promise.all(fileStack.map(element => processFile(element, messageList)))
 .then(() => { sendRequest(projectPath, messageList, MESSAGES_STACK); })
 .catch(err => console.error(err));
