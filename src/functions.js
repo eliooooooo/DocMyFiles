@@ -1,6 +1,5 @@
 // Dependencies
-import { renameSync } from 'fs';
-import { fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
+import { renameSync, fileSync, writeFileSync, promises, readdirSync, readFileSync, statSync, promisify, exec, fileURLToPath, join, dirname, __filename, __dirname, config, OpenAI, openai, chalk, rl } from './dependencies.js';
 import { openaiTier, tierRate } from './variables.js';
 
 // Variables
